@@ -30,20 +30,20 @@ print(result.text) // the best transcript across both languages
 
 ## Background
 
-Apple's `SpeechAnalyzer` (macOS 26 / iOS 26) transcribes on-device with no network and no permission prompt — but it has **no audio language detection**, and each transcriber is bound to a **single locale**. On top of that, `SpeechTranscriber` ships models for only some languages: Russian, for example, has no `SpeechTranscriber` model and must fall back to `DictationTranscriber`, the system-dictation engine.
+Apple's `SpeechAnalyzer` (macOS 26 / iOS 26) transcribes on-device with no network and no permission prompt, but it has **no audio language detection**, and each transcriber covers a **single locale**. Apple also ships `SpeechTranscriber` models for only some languages: Russian, for example, has no `SpeechTranscriber` model and must fall back to `DictationTranscriber`, the system-dictation engine.
 
-So supporting more than one language is not one API call. You have to run each candidate locale yourself, pick the right transcriber for each, provision its model, and then decide which output to trust — because a mismatched-language lane doesn't return nothing, it returns confident-looking garbage.
+Supporting more than one language takes more than one API call. You have to run each candidate locale yourself, pick the right transcriber for each, provision its model, and then decide which output to trust, because a mismatched-language lane returns confident-looking garbage instead of staying silent.
 
-SpeechLanes packages that work. It runs one **lane** per configured locale, chooses `SpeechTranscriber` where a model exists and `DictationTranscriber` otherwise, and lets a confidence arbiter pick the winner. It was extracted from a production Telegram assistant that answers spoken messages in English and Russian.
+SpeechLanes does that work for you. It runs one **lane** per configured locale, chooses `SpeechTranscriber` where a model exists and `DictationTranscriber` otherwise, and lets a confidence arbiter pick the winner. SpeechLanes began as the transcription engine of a production Telegram assistant that answers spoken messages in English and Russian.
 
 ## Features
 
-- **Multi-locale.** One lane per configured locale, tried in priority order. A lane that clearly matches the audio wins immediately; the rest never run.
-- **Automatic engine selection.** `SpeechTranscriber` where the locale ships a model, `DictationTranscriber` fallback (for example `ru-RU`).
+- **Multi-locale.** One lane per configured locale, tried in priority order. A lane that matches the audio wins; the rest never run.
+- **Automatic engine selection.** `SpeechTranscriber` where Apple ships a model for the locale, `DictationTranscriber` fallback (for example `ru-RU`).
 - **Confidence arbitration.** A lane above `acceptConfidence` wins outright; otherwise the highest-confidence lane above a floor wins; audio matching no configured language fails with a typed `lowConfidence` error instead of returning plausible-looking nonsense.
 - **Resilient.** One lane's engine failure never takes down a language that still works.
-- **Idempotent model provisioning.** Reserves, evicts stale reservations, and downloads assets on first use; fully offline afterwards.
-- **Any decodable audio.** Anything `AVAudioFile` can open — Telegram-shaped Ogg/Opus, MP3, M4A, CAF, WAV. Content is sniffed, so the file extension is irrelevant.
+- **Idempotent model provisioning.** Reserves, evicts stale reservations, and downloads assets on first use; offline afterwards.
+- **Any decodable audio.** Anything `AVAudioFile` can open: Telegram-shaped Ogg/Opus, MP3, M4A, CAF, WAV. `AVAudioFile` sniffs the content, so the file extension is irrelevant.
 - **Bounded and cancellable.** Optional decoded-duration cap, and the engine honors task cancellation so you can wrap it in a timeout.
 - **Swift 6, strict concurrency.** A `Sendable` actor behind a small injectable protocol, with typed throws. Zero third-party dependencies.
 
@@ -51,7 +51,7 @@ SpeechLanes packages that work. It runs one **lane** per configured locale, choo
 
 - iOS 26.0+ / macOS 26.0+ / visionOS 26.0+
 - Swift 6.2+ / Xcode 26+
-- Runs entirely on-device. The only network access is the one-time model download the first time a locale is used; the models are shared system-wide afterwards.
+- Runs on-device. The only network access is the one-time model download the first time you use a locale; the OS shares those models system-wide afterwards.
 
 ## Installation
 
@@ -103,7 +103,7 @@ print(result.text)
 
 ### Multiple locales
 
-List every language the audio might be in, most likely first. Each becomes a lane; the first lane whose confidence clears `acceptConfidence` wins without running the rest, so ordering is a cheap hint, not a hard constraint.
+List every language the audio might be in, most likely first. Each becomes a lane; the first lane whose confidence clears `acceptConfidence` wins without running the rest, so ordering hints at the likely match without constraining it.
 
 ```swift
 let transcriber = SpeechLaneTranscriber(
@@ -156,7 +156,7 @@ do {
 
 ### Capping audio duration
 
-Set `maximumAudioDuration` to reject long audio before the engine runs. The check reads the **decoded** length, not a container's declared metadata, so it can't be spoofed by a forged header.
+Set `maximumAudioDuration` to reject long audio before the engine runs. The check reads the **decoded** length, so a forged container header can't spoof it.
 
 ```swift
 Configuration(localeIdentifiers: ["en-US"], maximumAudioDuration: .seconds(600))
@@ -164,7 +164,7 @@ Configuration(localeIdentifiers: ["en-US"], maximumAudioDuration: .seconds(600))
 
 ### Bounding with a timeout
 
-The engine has no built-in deadline, but it honors task cancellation — a cancelled task abandons a wedged analyzer and throws `.cancelled`. Wrap the call in a task group to impose one:
+The engine has no built-in deadline, but it honors task cancellation. A cancelled task abandons a wedged analyzer and throws `.cancelled`. Wrap the call in a task group to impose one:
 
 ```swift
 extension SpeechLaneTranscriber {
@@ -190,7 +190,7 @@ extension SpeechLaneTranscriber {
 
 ### Testing with a fake
 
-`SpeechLaneTranscriber` conforms to `SpeechTranscribing`, so app code can depend on the protocol and inject a fake — no speech stack, no audio, no async model download in your unit tests.
+`SpeechLaneTranscriber` conforms to `SpeechTranscribing`, so app code can depend on the protocol and inject a fake: no speech stack, no audio, no async model download in your unit tests.
 
 ```swift
 struct StubTranscriber: SpeechTranscribing {
@@ -203,10 +203,10 @@ struct StubTranscriber: SpeechTranscribing {
 
 ## How It Works
 
-1. **Resolve.** Each configured locale becomes a lane. Resolution matches an exact BCP-47 tag first, then widens a partial tag (`ru` → `ru_RU`) through the engine's own equivalence, counting the result only when that engine actually supports it. A locale with a `SpeechTranscriber` model becomes a `.speech` lane; otherwise it falls back to a `.dictation` lane.
-2. **Guard.** The audio is opened once with `AVAudioFile` and its decoded duration is checked against `maximumAudioDuration`.
+1. **Resolve.** Each configured locale becomes a lane. `LaneResolver` matches an exact BCP-47 tag first, then widens a partial tag (`ru` → `ru_RU`) through the engine's own equivalence, counting the result only when that engine supports it. A locale with a `SpeechTranscriber` model becomes a `.speech` lane; otherwise it falls back to a `.dictation` lane.
+2. **Guard.** `DurationGuard` opens the audio once with `AVAudioFile` and checks its decoded duration against `maximumAudioDuration`.
 3. **Run.** Lanes run in priority order. Each provisions its model (idempotently), analyzes the file through `SpeechAnalyzer`, and averages the engine's per-word confidence. A lane clearing `acceptConfidence` (default `0.6`) returns immediately.
-4. **Arbitrate.** If no lane cleared the accept threshold, the highest-confidence lane above `floorConfidence` (default `0.3`) wins. If every lane scored below the floor, the result is `lowConfidence` — the defaults sit inside the measured separation between a matching language (≥ 0.84 average) and a mismatched one (≤ 0.21). A lane that failed outright is remembered and surfaced only when no lane produced a usable transcript, so a real, actionable fault is never hidden behind a generic "couldn't make it out".
+4. **Arbitrate.** If no lane cleared the accept threshold, the highest-confidence lane above `floorConfidence` (default `0.3`) wins. If every lane scored below the floor, the result is `lowConfidence`. The defaults sit inside the measured separation between a matching language (≥ 0.84 average) and a mismatched one (≤ 0.21). The arbiter remembers a lane that failed outright and surfaces it only when no lane produced a usable transcript, so a generic "couldn't make it out" never hides a real, actionable fault.
 
 ## Project Structure
 
