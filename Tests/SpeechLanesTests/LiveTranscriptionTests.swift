@@ -45,7 +45,7 @@ struct LiveTranscriptionTests {
       expected: "французских",
       locales: ["en", "ru"],
       engine: .dictation
-    ),
+    )
   ])
   func multiLocaleRacePicksTheLaneMatchingTheAudio(_ testCase: LiveCase) async throws {
     // given

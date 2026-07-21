@@ -42,7 +42,7 @@ import Testing
     // given
     let candidates = [
       scored(", , ,", confidence: 0.02),
-      scored("Hello des Voice месседж", confidence: 0.21),
+      scored("Hello des Voice месседж", confidence: 0.21)
     ]
 
     // when
