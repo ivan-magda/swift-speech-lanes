@@ -61,6 +61,22 @@ struct LiveTranscriptionTests {
     #expect(result.engine == testCase.engine)
   }
 
+  @Test func mixedLanguageAudioSettlesOnAUsableTranscript() async throws {
+    // given — synthesized fixture: "Привет! Это сообщение записано на двух языках." followed by
+    // "And the second half of this message is in English."
+    let transcriber = SpeechLaneTranscriber(
+      configuration: Configuration(localeIdentifiers: ["en-US", "ru-RU"])
+    )
+
+    // when
+    let result = try await transcriber.transcribe(audioFileAt: fixture(named: "voice-note-mixed"))
+
+    // then
+    let text = result.text.lowercased()
+    #expect(text.contains("языках") || text.contains("english"))
+    #expect(["en", "ru"].contains(result.locale.language.languageCode?.identifier ?? ""))
+  }
+
   @Test func aCancelledTaskThrowsCancelled() async throws {
     // given
     let transcriber = SpeechLaneTranscriber(
