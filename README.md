@@ -118,6 +118,10 @@ You can pass `Locale` values directly instead of identifier strings:
 Configuration(locales: [Locale(identifier: "en-US"), Locale(identifier: "ru-RU")])
 ```
 
+### Mixed-language audio
+
+A file that switches languages mid-recording settles on a **single winning lane**, and that lane transcribes the whole file. Phrases in the other language survive only as well as the winning engine handles them; the `ru-RU` dictation model, for example, carries embedded English. The arbiter chooses that one lane and rejects confident wrong-language output, rather than stitching transcripts across lanes. The live suite exercises this with a bundled Russian-then-English fixture (`voice-note-mixed.oga`).
+
 ### Inspecting the result
 
 `TranscriptionResult` carries the provenance you need to decide how much to trust the text.
