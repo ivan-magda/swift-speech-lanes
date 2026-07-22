@@ -8,6 +8,10 @@
 
 On-device, multi-language speech-to-text for Apple platforms. Give it an audio file and an ordered list of locales; it runs one transcription lane per locale on Apple's `SpeechAnalyzer` stack and returns the best transcript, picked by the engine's own confidence.
 
+<p align="center">
+  <img src="demo/speechlanes-demo.gif" width="300" alt="SpeechLanes transcribing an English, a Russian, and a mixed Russian-English voice note on-device">
+</p>
+
 ```swift
 let transcriber = SpeechLaneTranscriber(
     configuration: Configuration(localeIdentifiers: ["en-US", "ru-RU"])

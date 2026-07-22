@@ -29,4 +29,8 @@ playground.xcworkspace
 docs/
 .derivedData/
 
+# Demo app and recordings stay local; only the rendered GIFs are tracked
+demo/*
+!demo/*.gif
+
 .DS_Store
