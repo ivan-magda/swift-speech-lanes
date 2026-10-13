@@ -1,9 +1,8 @@
 # SpeechLanes
 
 [![CI](https://github.com/ivan-magda/swift-speech-lanes/actions/workflows/swift.yml/badge.svg)](https://github.com/ivan-magda/swift-speech-lanes/actions/workflows/swift.yml)
-[![Swift 6.2](https://img.shields.io/badge/Swift-6.2-orange.svg)](https://swift.org)
-[![Platforms](https://img.shields.io/badge/Platforms-iOS%20%7C%20macOS%20%7C%20visionOS-blue.svg)](https://developer.apple.com)
-[![SPM Compatible](https://img.shields.io/badge/SPM-compatible-brightgreen.svg)](https://swift.org/package-manager/)
+[![Swift versions](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fivan-magda%2Fswift-speech-lanes%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/ivan-magda/swift-speech-lanes)
+[![Platforms](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fivan-magda%2Fswift-speech-lanes%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/ivan-magda/swift-speech-lanes)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 On-device, multi-language speech-to-text for Apple platforms. Give it an audio file and an ordered list of locales; it runs one transcription lane per locale on Apple's `SpeechAnalyzer` stack and returns the best transcript, picked by the engine's own confidence.
